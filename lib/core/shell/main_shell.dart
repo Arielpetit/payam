@@ -30,21 +30,23 @@ class _PayamBottomNav extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.surface,
-        border: isDark ? Border(top: BorderSide(color: AppColors.darkBorder, width: 0.5)) : null,
+        color: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+        border: isDark 
+            ? Border(top: BorderSide(color: const Color(0xFF1A1A1A), width: 0.5))
+            : Border(top: BorderSide(color: AppColors.border.withOpacity(0.5), width: 0.5)),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, -2),
                 ),
               ],
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -59,36 +61,32 @@ class _PayamBottomNav extends ConsumerWidget {
                 },
               ),
               _NavItem(
-                icon: Icons.account_balance_wallet_rounded,
-                label: 'Wallet',
+                icon: Icons.qr_code_scanner_rounded,
+                label: 'Scan',
                 isActive: currentIndex == 1,
                 isDark: isDark,
                 onTap: () {
                   ref.read(currentNavIndexProvider.notifier).state = 1;
-                  context.go('/wallet');
+                  context.push('/merchant');
                 },
-              ),
-              _ScanButton(
-                isDark: isDark,
-                onTap: () => context.push('/merchant'),
               ),
               _NavItem(
                 icon: Icons.receipt_long_rounded,
                 label: 'History',
-                isActive: currentIndex == 3,
+                isActive: currentIndex == 2,
                 isDark: isDark,
                 onTap: () {
-                  ref.read(currentNavIndexProvider.notifier).state = 3;
+                  ref.read(currentNavIndexProvider.notifier).state = 2;
                   context.go('/transactions');
                 },
               ),
               _NavItem(
                 icon: Icons.person_rounded,
                 label: 'Profile',
-                isActive: currentIndex == 4,
+                isActive: currentIndex == 3,
                 isDark: isDark,
                 onTap: () {
-                  ref.read(currentNavIndexProvider.notifier).state = 4;
+                  ref.read(currentNavIndexProvider.notifier).state = 3;
                   context.go('/profile');
                 },
               ),
@@ -117,71 +115,45 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = isDark ? AppColors.primaryLight : AppColors.primary;
-    final inactiveColor = isDark ? AppColors.darkTextHint : AppColors.textHint;
-    final activeBgColor = isDark ? AppColors.primary.withOpacity(0.15) : AppColors.primarySurface;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? activeBgColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isActive ? activeColor : inactiveColor,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? activeColor : inactiveColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ScanButton extends StatelessWidget {
-  final bool isDark;
-  final VoidCallback onTap;
-  const _ScanButton({required this.isDark, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [AppColors.primaryLight, AppColors.primary]
-                : [AppColors.primary, AppColors.primaryDark],
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive 
+                ? (isDark ? AppColors.primary.withOpacity(0.15) : AppColors.primary.withOpacity(0.1))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
           ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: isDark ? null : AppColors.primaryShadow,
-        ),
-        child: const Icon(
-          Icons.qr_code_scanner_rounded,
-          color: Colors.white,
-          size: 24,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: isActive 
+                    ? AppColors.primary
+                    : (isDark ? Colors.white : Colors.black),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  color: isActive 
+                      ? AppColors.primary
+                      : (isDark ? Colors.white : Colors.black),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

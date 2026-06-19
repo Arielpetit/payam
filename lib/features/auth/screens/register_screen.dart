@@ -113,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Inputs
                 PayamTextField(
                   label: context.loc('full_name'),
-                  hint: 'Ariel Tchikaya',
+                  hint: 'Jean Dupont',
                   controller: _nameController,
                   prefixIcon: Icon(Icons.person_rounded,
                       size: 18, color: isDark ? Colors.white38 : AppColors.textHint),
@@ -124,7 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 PayamTextField(
                   label: context.loc('phone_number'),
-                  hint: '+242 06 000 0000',
+                  hint: '+237 6 XX XXX XXX',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   prefixIcon: Icon(Icons.phone_rounded,

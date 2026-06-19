@@ -8,11 +8,12 @@ class MockRepository {
     _currentUser = UserModel(
       id: 'usr_001',
       fullName: 'Ariel Tchikaya',
-      phone: '+242 06 123 4567',
+      phone: '+237 6 12 34 567',
       email: 'ariel.tchikaya@payam.app',
       balance: 250000,
-      accountNumber: '2420 0612 3456',
-      isVerified: true,
+      accountNumber: '2370 0612 3456',
+      isVerified: false,
+      isEmailVerified: false,
     );
 
     _transactions = [
@@ -39,12 +40,12 @@ class MockRepository {
         date: DateTime.now().subtract(const Duration(hours: 5)),
         reference: 'PAY20241001002',
         recipientName: 'Jean-Baptiste Moukala',
-        recipientPhone: '+242 06 987 6543',
+        recipientPhone: '+237 6 98 76 543',
       ),
       TransactionModel(
         id: 'txn_003',
         title: 'Airtime Top-up',
-        subtitle: 'MTN Congo — +242 06 123 4567',
+        subtitle: 'MTN Cameroon — +237 6 12 34 567',
         amount: 5000,
         isCredit: false,
         type: TransactionType.airtime,
@@ -75,7 +76,7 @@ class MockRepository {
         date: DateTime.now().subtract(const Duration(days: 2)),
         reference: 'PAY20240929001',
         recipientName: 'Marie Nguesso',
-        recipientPhone: '+242 05 456 7890',
+        recipientPhone: '+237 5 45 67 890',
         note: 'Rent contribution',
       ),
       TransactionModel(
@@ -165,9 +166,9 @@ class MockRepository {
       ),
       NotificationModel(
         id: 'notif_004',
-        title: '📱 Airtime Top-up Successful',
+        title: 'Airtime Top-up Successful',
         message:
-            'Your MTN airtime top-up of FCFA 5,000 for +242 06 123 4567 was successful.',
+            'Your MTN airtime top-up of FCFA 5,000 for +237 6 12 34 567 was successful.',
         category: NotificationCategory.transaction,
         isRead: true,
         date: DateTime.now().subtract(const Duration(days: 1)),
@@ -196,46 +197,46 @@ class MockRepository {
       UserModel(
         id: 'usr_002',
         fullName: 'Jean-Baptiste Moukala',
-        phone: '+242 06 987 6543',
+        phone: '+237 6 98 76 543',
         email: 'jb.moukala@email.com',
         balance: 0,
-        accountNumber: '2420 0698 7654',
+        accountNumber: '2370 0698 7654',
         isVerified: true,
       ),
       UserModel(
         id: 'usr_003',
         fullName: 'Marie Nguesso',
-        phone: '+242 05 456 7890',
+        phone: '+237 5 45 67 890',
         email: 'marie.nguesso@email.com',
         balance: 0,
-        accountNumber: '2420 0545 6789',
+        accountNumber: '2370 0545 6789',
         isVerified: true,
       ),
       UserModel(
         id: 'usr_004',
         fullName: 'Papa Tchikaya',
-        phone: '+242 06 321 0987',
+        phone: '+237 6 32 10 987',
         email: 'papa.tchikaya@email.com',
         balance: 0,
-        accountNumber: '2420 0632 1098',
+        accountNumber: '2370 0632 1098',
         isVerified: false,
       ),
       UserModel(
         id: 'usr_005',
         fullName: 'Celestine Mbemba',
-        phone: '+242 05 111 2233',
+        phone: '+237 5 11 22 334',
         email: 'celestine.mbemba@email.com',
         balance: 0,
-        accountNumber: '2420 0511 1223',
+        accountNumber: '2370 0511 1223',
         isVerified: true,
       ),
       UserModel(
         id: 'usr_006',
         fullName: 'Roland Ossali',
-        phone: '+242 06 444 5566',
+        phone: '+237 6 44 55 667',
         email: 'roland.ossali@email.com',
         balance: 0,
-        accountNumber: '2420 0644 4556',
+        accountNumber: '2370 0644 4556',
         isVerified: true,
       ),
     ];
@@ -257,6 +258,8 @@ class MockRepository {
   List<NotificationModel> get notifications => _notifications;
   List<UserModel> get contacts => _contacts;
   List<NfcTransaction> get nfcTransactions => _nfcTransactions;
+
+  set contacts(List<UserModel> value) => _contacts = value;
 
   void addNfcTransaction(NfcTransaction txn) {
     _nfcTransactions.insert(0, txn);
@@ -281,6 +284,10 @@ class MockRepository {
 
   void addNotification(NotificationModel notif) {
     _notifications.insert(0, notif);
+  }
+
+  void updateUser(UserModel user) {
+    _currentUser = user;
   }
 
   void markNotificationsRead() {

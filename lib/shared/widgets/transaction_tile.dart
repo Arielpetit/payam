@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../models/transaction_model.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/localization/app_localizations.dart';
 
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
@@ -71,11 +72,17 @@ class TransactionTile extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: transaction.isCredit
                         ? AppColors.success
-                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                        : AppColors.error,
                   ),
                 ),
                 const SizedBox(height: 4),
-                _StatusBadge(status: transaction.status),
+                Text(
+                  DateFormatter.formatRelative(transaction.date),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ],
@@ -129,33 +136,3 @@ class _TransactionIcon extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final TransactionStatus status;
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final (label, color) = switch (status) {
-      TransactionStatus.success => ('Success', AppColors.success),
-      TransactionStatus.pending  => ('Pending',  AppColors.warning),
-      TransactionStatus.failed   => ('Failed',   AppColors.error),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.18 : 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: isDark ? Border.all(color: color.withOpacity(0.3)) : null,
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-}

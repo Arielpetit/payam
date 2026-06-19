@@ -120,3 +120,20 @@ logs/
 *.apk
 *.aab
 *.ipa
+
+# Flutter metadata
+.metadata
+
+# Generated Dart files
+*.g.dart
+*.freezed.dart
+
+# Generated plugin registrants (all platforms)
+**/linux/flutter/generated_plugin_registrant.*
+**/linux/flutter/generated_plugins.cmake
+**/windows/flutter/generated_plugin_registrant.*
+**/windows/flutter/generated_plugins.cmake
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Server directory (backend is separate repo)
+server/

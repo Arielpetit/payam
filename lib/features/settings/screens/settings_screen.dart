@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
-import '../../../core/providers/hce_payment_provider.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/payam_button.dart';
 import '../../../shared/widgets/payam_text_field.dart';
-import '../../debug/screens/nfc_debug_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -46,7 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Text('🇺🇸', style: TextStyle(fontSize: 24)),
+                  leading: Icon(Icons.language_rounded, color: AppColors.primary),
                   title: Text(
                     'English',
                     style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimary),
@@ -79,105 +78,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _showNfcInfoDialog(BuildContext context, bool isDark) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF121212) : AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.nfc_rounded, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Text(
-              'NFC Payments',
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildNfcInfoStep('1', 'Sender enters amount', isDark),
-            const SizedBox(height: 12),
-            _buildNfcInfoStep('2', 'Phones tap together (< 4cm)', isDark),
-            const SizedBox(height: 12),
-            _buildNfcInfoStep('3', 'Payment transfers instantly', isDark),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.info.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Enable Auto-receive to accept payments without opening the receive screen.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? Colors.white70 : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Got it',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNfcInfoStep(String number, String text, bool isDark) {
-    return Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              number,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 15,
-            color: isDark ? Colors.white : AppColors.textPrimary,
-          ),
-        ),
-      ],
     );
   }
 
@@ -352,49 +252,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
 
             const SizedBox(height: 32),
-            _SectionTitle('NFC Payments', isDark),
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF121212) : AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: isDark ? Border.all(color: const Color(0xFF1E1E1E)) : null,
-                boxShadow: isDark ? null : AppColors.cardShadow,
-              ),
-              child: Column(
-                children: [
-_SettingsTile(
-                    title: 'NFC Auto-Receive',
-                    subtitle: 'Always enabled - receive payments instantly',
-                    icon: Icons.nfc_rounded,
-                    isDark: isDark,
-                    onTap: () {
-                      // No action - always on
-                    },
-                  ),
-                  Divider(height: 1, indent: 56, color: isDark ? const Color(0xFF1E1E1E) : AppColors.border),
-                  _SettingsTile(
-                    title: 'How NFC payments work',
-                    subtitle: 'Learn about tap-to-pay',
-                    icon: Icons.help_outline_rounded,
-                    isDark: isDark,
-                    onTap: () => _showNfcInfoDialog(context, isDark),
-                  ),
-                  Divider(height: 1, indent: 56, color: isDark ? const Color(0xFF1E1E1E) : AppColors.border),
-                  _SettingsTile(
-                    title: 'NFC Debug Logs',
-                    subtitle: 'View NFC communication logs',
-                    icon: Icons.bug_report_rounded,
-                    isDark: isDark,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NfcDebugScreen()),
-                    ),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1),
-
-            const SizedBox(height: 32),
             _SectionTitle(context.loc('notifications'), isDark),
             Container(
               decoration: BoxDecoration(
@@ -435,6 +292,13 @@ _SettingsTile(
               ),
               child: Column(
                 children: [
+                  _SettingsTile(
+                    title: 'About Payam',
+                    icon: Icons.info_rounded,
+                    isDark: isDark,
+                    onTap: () => context.push('/about'),
+                  ),
+                  Divider(height: 1, indent: 56, color: isDark ? const Color(0xFF1E1E1E) : AppColors.border),
                   _SettingsTile(
                     title: context.loc('terms_of_service'),
                     icon: Icons.description_rounded,

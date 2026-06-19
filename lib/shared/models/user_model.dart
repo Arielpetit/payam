@@ -7,6 +7,7 @@ class UserModel {
   final double balance;
   final String accountNumber;
   final bool isVerified;
+  final bool isEmailVerified;
 
   const UserModel({
     required this.id,
@@ -17,6 +18,7 @@ class UserModel {
     required this.balance,
     required this.accountNumber,
     this.isVerified = true,
+    this.isEmailVerified = false,
   });
 
   UserModel copyWith({
@@ -28,6 +30,7 @@ class UserModel {
     double? balance,
     String? accountNumber,
     bool? isVerified,
+    bool? isEmailVerified,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class UserModel {
       balance: balance ?? this.balance,
       accountNumber: accountNumber ?? this.accountNumber,
       isVerified: isVerified ?? this.isVerified,
+      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
     );
   }
 

@@ -40,7 +40,7 @@ final unreadNotificationsCountProvider = Provider<int>((ref) {
 });
 
 // Contacts
-final contactsProvider = Provider<List<UserModel>>((ref) {
+final contactsProvider = StateProvider<List<UserModel>>((ref) {
   return MockRepository.instance.contacts;
 });
 

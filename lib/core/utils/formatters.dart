@@ -42,6 +42,6 @@ class DateFormatter {
     if (diff.inDays < 7) {
       return isFr ? 'Il y a ${diff.inDays} jours' : '${diff.inDays} days ago';
     }
-    return DateFormat('dd MMM', languageCode).format(date);
+    return DateFormat('dd/MM/yy').format(date);
   }
 }

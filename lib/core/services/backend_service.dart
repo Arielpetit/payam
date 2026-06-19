@@ -4,8 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'nfc_method_channel.dart';
 
-// ── Change this to your PC's IP when testing on real devices ──────────────
-const String kBackendBase = 'http://10.42.0.1:3000';
+// ── Backend base URL ──────────────────────────────────────────────────────
+// TODO: Replace with env-based config before production
+const String kBackendBase = String.fromEnvironment(
+  'BACKEND_URL',
+  defaultValue: 'http://localhost:3000',
+);
 
 class TransferResponse {
   final bool success;

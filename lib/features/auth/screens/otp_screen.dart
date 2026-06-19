@@ -4,12 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/localization/app_localizations.dart';
 import '../../../shared/widgets/payam_button.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
-  const OtpScreen({super.key, required this.phone});
+  final bool isRecovery;
+  const OtpScreen({super.key, required this.phone, this.isRecovery = false});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -20,6 +20,7 @@ class _OtpScreenState extends State<OtpScreen> {
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   bool _isLoading = false;
+  bool _showLoadingOverlay = false;
   int _countdown = 60;
   Timer? _timer;
 
@@ -59,11 +60,27 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> _verify() async {
     final otp = _controllers.map((c) => c.text).join();
     if (otp.length < 6) return;
-    setState(() => _isLoading = true);
+
+    setState(() {
+      _isLoading = true;
+      _showLoadingOverlay = true;
+    });
+
     await Future.delayed(const Duration(milliseconds: 1500));
+
     if (mounted) {
-      setState(() => _isLoading = false);
-      context.go('/home');
+      setState(() {
+        _isLoading = false;
+        _showLoadingOverlay = false;
+      });
+      
+      // If recovery flow, go to verification pending
+      // Otherwise go directly to home
+      if (widget.isRecovery) {
+        context.go('/verification-pending');
+      } else {
+        context.go('/home');
+      }
     }
   }
 
@@ -71,211 +88,225 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? Colors.black : AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-              GestureDetector(
-                onTap: () => context.pop(),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(12),
-                    border: isDark ? Border.all(color: const Color(0xFF2D2D2D)) : null,
-                  ),
-                  child: Icon(
-                    Icons.arrow_back_rounded,
-                    size: 20,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  gradient: isDark
-                      ? const LinearGradient(
-                          colors: [Color(0xFF2D2D2D), Color(0xFF121212)],
-                        )
-                      : AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(18),
-                  border: isDark ? Border.all(color: const Color(0xFF333333)) : null,
-                ),
-                child: Icon(
-                  Icons.sms_rounded,
-                  size: 32,
-                  color: isDark ? Colors.white70 : Colors.white,
-                ),
-              ).animate().scale(
-                    begin: const Offset(0.7, 0.7),
-                    end: const Offset(1, 1),
-                    curve: Curves.elasticOut,
-                    duration: 600.ms,
-                  ),
-              const SizedBox(height: 28),
-              Text(
-                '${context.loc('otp_title')} 📱',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                  height: 1.2,
-                  letterSpacing: -0.5,
-                ),
-              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
-              const SizedBox(height: 12),
-              RichText(
-                text: TextSpan(
-                  text: '${context.loc('otp_subtitle')}\n',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isDark ? Colors.white60 : AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: widget.phone.isEmpty ? '+242 06 *** ****' : widget.phone,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: isDark ? Colors.black : AppColors.background,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 60),
+
+                  // Logo
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isDark 
+                            ? [AppColors.primaryLight, AppColors.primary]
+                            : [AppColors.primary, AppColors.primaryDark],
                       ),
+                      shape: BoxShape.circle,
+                      boxShadow: isDark ? null : AppColors.primaryShadow,
                     ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 150.ms),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(
-                  6,
-                  (i) => _OtpBox(
-                    controller: _controllers[i],
-                    focusNode: _focusNodes[i],
-                    isDark: isDark,
-                    onChanged: (v) {
-                      if (v.isNotEmpty && i < 5) {
-                        _focusNodes[i + 1].requestFocus();
-                      } else if (v.isEmpty && i > 0) {
-                        _focusNodes[i - 1].requestFocus();
-                      }
-                      // Auto-verify
-                      final otp = _controllers.map((c) => c.text).join();
-                      if (otp.length == 6) _verify();
-                    },
+                    child: Icon(
+                      Icons.lock_rounded,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ).animate().fadeIn().scale(
+                    begin: const Offset(0.5, 0.5),
+                    end: const Offset(1, 1),
+                    duration: 400.ms,
                   ),
-                ).animate(interval: 60.ms).fadeIn().slideY(begin: 0.2, end: 0),
-              ),
-              const SizedBox(height: 36),
-              PayamButton(
-                label: context.loc('otp_verify'),
-                onPressed: _verify,
-                isLoading: _isLoading,
-              ).animate().fadeIn(delay: 400.ms),
-              const SizedBox(height: 28),
-              Center(
-                child: _countdown > 0
-                    ? RichText(
-                        text: TextSpan(
-                          text: '${context.loc('otp_resend_in')} ',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? Colors.white60 : AppColors.textSecondary,
+
+                  const SizedBox(height: 32),
+
+                  Text(
+                    'Verification',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      height: 1.2,
+                    ),
+                  ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    'Enter the 6-digit code sent to',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isDark ? Colors.white60 : AppColors.textSecondary,
+                      decoration: TextDecoration.none,
+                    ),
+                  ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.2, end: 0),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    widget.phone.isEmpty ? '+237 6 XX XXX XXX' : widget.phone,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      decoration: TextDecoration.none,
+                    ),
+                  ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+
+                  const SizedBox(height: 48),
+
+                  // OTP Input
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(6, (index) {
+                      return Container(
+                        width: 48,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _focusNodes[index].hasFocus
+                                ? AppColors.primary
+                                : (isDark ? AppColors.darkBorder : AppColors.border),
+                            width: _focusNodes[index].hasFocus ? 2 : 1,
                           ),
-                          children: [
-                            TextSpan(
-                              text: '${_countdown}s',
-                              style: TextStyle(
-                                color: isDark ? Colors.white : AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          boxShadow: isDark ? null : [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                      )
-                    : GestureDetector(
-                        onTap: _startTimer,
-                        child: Text(
-                          context.loc('otp_resend'),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          maxLength: 1,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? Colors.white : AppColors.primary,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
                           ),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: (value) {
+                            if (value.isNotEmpty && index < 5) {
+                              _focusNodes[index + 1].requestFocus();
+                            }
+                            if (value.isNotEmpty && index == 5) {
+                              _focusNodes[index].unfocus();
+                              _verify();
+                            }
+                          },
+                        ),
+                      ).animate().fadeIn(delay: Duration(milliseconds: 250 + (index * 50))).slideY(begin: 0.3, end: 0);
+                    }),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Verify Button
+                  PayamButton(
+                    label: 'Verify Code',
+                    onPressed: _verify,
+                    isLoading: _isLoading,
+                  ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.15, end: 0),
+
+                  const SizedBox(height: 24),
+
+                  // Resend
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Didn\'t receive the code? ',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isDark ? Colors.white60 : AppColors.textSecondary,
                         ),
                       ),
-              ).animate().fadeIn(delay: 500.ms),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+                      if (_countdown == 0)
+                        GestureDetector(
+                          onTap: () {
+                            _startTimer();
+                            // Resend OTP logic here
+                          },
+                          child: Text(
+                            'Resend',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        )
+                      else
+                        Text(
+                          'Resend in ${_countdown}s',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isDark ? Colors.white38 : AppColors.textHint,
+                          ),
+                        ),
+                    ],
+                  ).animate().fadeIn(delay: 700.ms),
 
-class _OtpBox extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool isDark;
-  final ValueChanged<String> onChanged;
-
-  const _OtpBox({
-    required this.controller,
-    required this.focusNode,
-    required this.isDark,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 44,
-      height: 56,
-      child: TextFormField(
-        controller: controller,
-        focusNode: focusNode,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        onChanged: onChanged,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : AppColors.textPrimary,
-        ),
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: isDark ? const Color(0xFF121212) : AppColors.surfaceVariant,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(
-              color: isDark ? const Color(0xFF2D2D2D) : AppColors.border,
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(
-              color: isDark ? Colors.white : AppColors.primary,
-              width: 2,
+        ),
+
+        // Loading overlay
+        if (_showLoadingOverlay)
+          Container(
+            color: isDark ? Colors.black.withOpacity(0.9) : Colors.white.withOpacity(0.95),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Verifying...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          contentPadding: EdgeInsets.zero,
-        ),
-      ),
+      ],
     );
   }
 }

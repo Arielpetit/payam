@@ -322,56 +322,55 @@ class _QuickActionsGrid extends StatelessWidget {
       (Icons.send_rounded, context.loc('send'), 'send'),
       (Icons.arrow_downward_rounded, context.loc('receive'), 'receive'),
       (Icons.qr_code_rounded, context.loc('pay'), 'pay'),
-      (Icons.nfc_rounded, context.loc('nfc'), 'nfc'),
+      (Icons.account_balance_wallet_rounded, context.loc('topup'), 'topup'),
     ];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: actions.map((action) {
-        final (icon, label, type) = action;
-        return GestureDetector(
-          onTap: () {
-            if (type == 'send') {
-              context.push('/send-money');
-            } else if (type == 'receive') {
-              context.push('/receive-money');
-            } else if (type == 'pay') {
-              context.push('/merchant');
-            } else if (type == 'nfc') {
-              context.push('/nfc-payment');
-            }
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.primary.withOpacity(0.18)
-                      : AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
-                  border: isDark
-                      ? Border.all(color: AppColors.primary.withOpacity(0.3))
-                      : null,
-                ),
-                child: Icon(
-                  icon,
-                  size: 22,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-              ),
-            ],
+      children: actions.map((entry) {
+        final (icon, label, type) = entry;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () {
+              if (type == 'send') {
+                context.push('/send-money');
+              } else if (type == 'receive') {
+                context.push('/receive-money');
+              } else if (type == 'pay') {
+                context.push('/merchant');
+              } else if (type == 'topup') {
+                context.push('/topup');
+              }
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+Container(
+                   width: 56,
+                   height: 56,
+                   decoration: BoxDecoration(
+                     color: isDark
+                         ? AppColors.primary.withOpacity(0.25)
+                         : AppColors.primary.withOpacity(0.18),
+                     borderRadius: BorderRadius.circular(16),
+                   ),
+                   child: Icon(
+                     icon,
+                     size: 26,
+                     color: AppColors.primary,
+                   ),
+                 ),
+                 const SizedBox(height: 10),
+                 Text(
+                   label,
+                   style: TextStyle(
+                     fontSize: 12,
+                     fontWeight: FontWeight.w700,
+                     color: isDark ? Colors.white70 : AppColors.textPrimary,
+                   ),
+                 ),
+              ],
+            ),
           ),
         );
       }).toList(),

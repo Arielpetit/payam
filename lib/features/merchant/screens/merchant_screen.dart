@@ -7,7 +7,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/payam_button.dart';
-import '../../../shared/widgets/success/success_overlay.dart';
+import 'package:go_router/go_router.dart';
 import '../../../shared/models/transaction_model.dart';
 import '../../../shared/models/notification_model.dart';
 import '../../../shared/repositories/mock_repository.dart';
@@ -25,11 +25,46 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
     detectionSpeed: DetectionSpeed.normal,
     facing: CameraFacing.back,
   );
-  bool _isScannerActive = true;
   bool _hasScanned = false;
+  bool _hasPermission = false;
+  bool _permissionDenied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to scanner state to detect permission errors
+    _scannerController.addListener(_onScannerStateChanged);
+    // Wait for first frame so MobileScanner widget is in the tree
+    // before the camera surface attaches — avoids black preview bug
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scannerController.start();
+      }
+    });
+  }
+
+  void _onScannerStateChanged() {
+    final error = _scannerController.value.error;
+    if (error != null && error.errorCode == MobileScannerErrorCode.permissionDenied) {
+      if (mounted && !_permissionDenied) {
+        setState(() {
+          _permissionDenied = true;
+          _hasPermission = false;
+        });
+      }
+    } else if (error == null && _scannerController.value.isRunning) {
+      if (mounted && !_hasPermission) {
+        setState(() {
+          _hasPermission = true;
+          _permissionDenied = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
+    _scannerController.removeListener(_onScannerStateChanged);
     _scannerController.dispose();
     super.dispose();
   }
@@ -51,7 +86,6 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
     final formKey = GlobalKey<FormState>();
 
     _scannerController.stop();
-    setState(() => _isScannerActive = false);
 
     showModalBottomSheet(
       context: context,
@@ -138,8 +172,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
         );
       },
     ).then((_) {
-      if (mounted && !_hasScanned) {
-        setState(() => _isScannerActive = true);
+      if (mounted && !_hasScanned && _hasPermission) {
         _scannerController.start();
       }
     });
@@ -157,8 +190,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
         ),
       );
       _hasScanned = false;
-      if (mounted) {
-        setState(() => _isScannerActive = true);
+      if (mounted && _hasPermission) {
         _scannerController.start();
       }
       return;
@@ -192,13 +224,20 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
     ref.read(transactionsProvider.notifier).state = [...MockRepository.instance.transactions];
     ref.read(notificationsProvider.notifier).state = [...MockRepository.instance.notifications];
 
-    await SuccessOverlay.show(
-      context,
-      title: context.loc('payment_success'),
-      subtitle: 'Payment sent to $merchantId',
-      amount: 'FCFA ${CurrencyFormatter.format(amount)}',
-      icon: Icons.storefront_rounded,
-    );
+    if (context.mounted) {
+      context.go('/transaction-success', extra: {
+        'title': context.loc('payment_success'),
+        'subtitle': 'Payment sent to $merchantId',
+        'amount': 'FCFA ${CurrencyFormatter.format(amount)}',
+        'icon': Icons.storefront_rounded,
+        'transactionType': TransactionType.payment,
+        'reference': 'PAY${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+        'paymentMethod': 'Payam Wallet',
+        'fee': '0 FCFA',
+        'recipientName': merchantId,
+        'isKnownContact': true,
+      });
+    }
   }
 
   @override
@@ -206,6 +245,98 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // If permission denied, show permission denied UI
+    if (_permissionDenied) {
+      return Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+        appBar: AppBar(
+          title: Text(context.loc('pay_merchant')),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Icon(Icons.videocam_off_rounded, size: 40, color: AppColors.error),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Camera Access Required',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Payam needs camera access to scan QR codes. Please grant camera permission in your device settings.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.5,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Reset state and restart scanner after frame
+                            setState(() {
+                              _permissionDenied = false;
+                              _hasScanned = false;
+                            });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _scannerController.start();
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text('Grant Camera Access', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton(
+                          onPressed: () => _showMerchantIdSheet(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.border),
+                            foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text('Enter Code Manually', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Scanner is active — show camera + overlay
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
@@ -224,7 +355,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
                   decoration: ShapeDecoration(
                     shape: ScannerOverlayShape(
                       borderColor: isDark ? AppColors.primaryLight : AppColors.primary,
-                      overlayColor: Colors.black.withOpacity(0.6),
+                      overlayColor: Colors.black.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -236,7 +367,7 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
                       Icon(
                         Icons.qr_code_scanner_rounded,
                         size: 48,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 16),
                       Padding(
@@ -294,16 +425,6 @@ class _MerchantScreenState extends ConsumerState<MerchantScreen> {
                         label: context.loc('enter_code'),
                         isDark: isDark,
                         onTap: () => _showMerchantIdSheet(context),
-                      ),
-                      _ActionButton(
-                        icon: _isScannerActive
-                            ? Icons.flash_on_rounded
-                            : Icons.flash_off_rounded,
-                        label: context.loc('flashlight'),
-                        isDark: isDark,
-                        onTap: () {
-                          _scannerController.toggleTorch();
-                        },
                       ),
                     ],
                   ),

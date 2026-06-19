@@ -7,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/payam_button.dart';
-import '../../../shared/widgets/payam_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -19,25 +18,32 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _rememberMe = false;
   bool _isLoading = false;
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty || phone.length < 9) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid phone number')),
+      );
+      return;
+    }
+    
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    
     if (mounted) {
       setState(() => _isLoading = false);
-      ref.read(isAuthenticatedProvider.notifier).state = true;
-      context.go('/home');
+      context.push('/otp', extra: {'phone': '+237 $phone', 'isRecovery': false});
     }
   }
 
@@ -46,291 +52,293 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final locale = ref.watch(localeProvider);
 
-    return Scaffold(
-      backgroundColor: isDark ? Colors.black : AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-
-                // Top Actions Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: isDark ? Colors.black : AppColors.background,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: () => context.go('/onboarding'),
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                          border: isDark ? Border.all(color: const Color(0xFF2D2D2D)) : null,
-                        ),
-                        child: Icon(Icons.arrow_back_rounded,
-                            size: 20, color: isDark ? Colors.white : AppColors.textPrimary),
-                      ),
-                    ),
-                    
-                    // Floating Language Switcher
-                    PopupMenuButton<String>(
-                      icon: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                          border: isDark ? Border.all(color: const Color(0xFF2D2D2D)) : null,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.language_rounded,
-                                size: 16, color: isDark ? Colors.white : AppColors.textPrimary),
-                            const SizedBox(width: 6),
-                            Text(
-                              locale.languageCode.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : AppColors.textPrimary,
-                              ),
+                    const SizedBox(height: 60),
+
+                    // Language selector - Top Right
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: PopupMenuButton<String>(
+                        icon: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E1E1E) : AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : AppColors.border,
                             ),
-                            Icon(Icons.arrow_drop_down_rounded,
-                                size: 18, color: isDark ? Colors.white60 : AppColors.textSecondary),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.language_rounded,
+                                  size: 18, color: isDark ? Colors.white70 : AppColors.textSecondary),
+                              const SizedBox(width: 8),
+                              Text(
+                                locale.languageCode.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(Icons.arrow_drop_down_rounded,
+                                  size: 20, color: isDark ? Colors.white70 : AppColors.textSecondary),
+                            ],
+                          ),
                         ),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(value: 'en', child: Text('English')),
+                          PopupMenuItem(value: 'fr', child: Text('Français')),
+                        ],
+                        onSelected: (value) {
+                          ref.read(localeProvider.notifier).state = Locale(value);
+                        },
                       ),
-                      onSelected: (langCode) {
-                        ref.read(localeProvider.notifier).state = Locale(langCode);
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: 'en', child: Text('English')),
-                        const PopupMenuItem(value: 'fr', child: Text('Français')),
-                      ],
+                    ).animate().fadeIn(delay: 100.ms),
+
+                    const SizedBox(height: 24),
+
+                    // Logo
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark 
+                              ? [AppColors.primaryLight, AppColors.primary]
+                              : [AppColors.primary, AppColors.primaryDark],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: isDark ? null : AppColors.primaryShadow,
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 40,
+                        color: Colors.white,
+                      ),
+                    ).animate().fadeIn().scale(
+                      begin: const Offset(0.5, 0.5),
+                      end: const Offset(1, 1),
+                      duration: 400.ms,
                     ),
-                  ],
-                ).animate().fadeIn().slideY(begin: -0.2, end: 0),
 
-                const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
-                // Header Title
-                Text(
-                  '${context.loc('welcome_back')} 👋',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
-                    height: 1.2,
-                    letterSpacing: -0.8,
-                  ),
-                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
+                    Text(
+                      'Welcome',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        height: 1.2,
+                      ),
+                    ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.2, end: 0),
 
-                const SizedBox(height: 8),
+                    const SizedBox(height: 12),
 
-                Text(
-                  context.loc('login_subtitle'),
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDark ? Colors.white60 : AppColors.textSecondary,
-                  ),
-                ).animate().fadeIn(delay: 150.ms),
+                    Text(
+                      'Please put your phone number to\ncreate your Payam account',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isDark ? Colors.white60 : AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
 
-                const SizedBox(height: 36),
+                    const SizedBox(height: 40),
 
-                // Phone Input
-                PayamTextField(
-                  label: context.loc('phone_number'),
-                  hint: '+242 06 000 0000',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: Icon(Icons.phone_rounded,
-                      size: 18, color: isDark ? Colors.white38 : AppColors.textHint),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Phone number required';
-                    return null;
-                  },
-                ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
-
-                const SizedBox(height: 20),
-
-                // Password Input
-                PayamTextField(
-                  label: context.loc('password'),
-                  hint: context.loc('password_hint'),
-                  controller: _passwordController,
-                  obscureText: true,
-                  prefixIcon: Icon(Icons.lock_rounded,
-                      size: 18, color: isDark ? Colors.white38 : AppColors.textHint),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Password required';
-                    return null;
-                  },
-                ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1, end: 0),
-
-                const SizedBox(height: 20),
-
-                // Remember me + Forgot Password
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () =>
-                          setState(() => _rememberMe = !_rememberMe),
-                      child: Row(
+                    // Phone number card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : AppColors.border,
+                        ),
+                        boxShadow: isDark ? null : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 20,
-                            height: 20,
+                          Text(
+                            'Phone number',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Phone input with flag
+                          Container(
                             decoration: BoxDecoration(
-                              color: _rememberMe
-                                  ? (isDark ? Colors.white : AppColors.primary)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
+                              color: isDark ? const Color(0xFF2D2D2D) : AppColors.background,
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: _rememberMe
-                                    ? (isDark ? Colors.white : AppColors.primary)
-                                    : (isDark ? const Color(0xFF2D2D2D) : AppColors.border),
+                                color: isDark ? AppColors.darkBorder : AppColors.border,
                                 width: 1.5,
                               ),
                             ),
-                            child: _rememberMe
-                                ? Icon(Icons.check,
-                                    size: 12, color: isDark ? Colors.black : Colors.white)
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            isDark ? 'Remember' : 'Remember me',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.white70 : AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '🇨🇲',
+                                        style: TextStyle(fontSize: 22),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        '+237',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? Colors.white : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 24,
+                                  color: isDark ? Colors.white10 : AppColors.border,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _phoneController,
+                                    keyboardType: TextInputType.phone,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(9),
+                                    ],
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? Colors.white : AppColors.textPrimary,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: '6 XX XXX XXX',
+                                      hintStyle: TextStyle(
+                                        color: isDark ? Colors.white24 : AppColors.textHint,
+                                        fontSize: 16,
+                                      ),
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () {},
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        context.loc('forgot_password'),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 300.ms),
+                    ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.15, end: 0),
 
-                const SizedBox(height: 36),
+                    const SizedBox(height: 40),
 
-                // Submit Sign In Button
-                PayamButton(
-                  label: context.loc('sign_in'),
-                  onPressed: _login,
-                  isLoading: _isLoading,
-                ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1, end: 0),
+                    // Create Account Button
+                    PayamButton(
+                      label: 'Create Account',
+                      onPressed: _login,
+                      isLoading: _isLoading,
+                    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.15, end: 0),
 
-                const SizedBox(height: 20),
+                    const SizedBox(height: 60),
 
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: isDark ? const Color(0xFF2D2D2D) : AppColors.border)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        isDark ? 'OR' : 'or',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? Colors.white24 : AppColors.textHint,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: isDark ? const Color(0xFF2D2D2D) : AppColors.border)),
-                  ],
-                ).animate().fadeIn(delay: 400.ms),
-
-                const SizedBox(height: 20),
-
-                // Demo bypass option
-                OutlinedButton.icon(
-                  onPressed: () {
-                    ref.read(isAuthenticatedProvider.notifier).state = true;
-                    context.go('/home');
-                  },
-                  icon: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white : AppColors.primary,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(Icons.bolt_rounded,
-                        size: 14, color: isDark ? Colors.black : Colors.white),
-                  ),
-                  label: Text(
-                    isDark ? 'DEMO BYPASS' : 'Continue as Demo User',
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.primary,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 450.ms),
-
-                const SizedBox(height: 32),
-
-                // Footer link to Register
-                Center(
-                  child: GestureDetector(
-                    onTap: () => context.go('/register'),
-                    child: RichText(
-                      text: TextSpan(
-                        text: locale.languageCode == 'fr' 
-                          ? "Vous n'avez pas de compte? "
-                          : "Don't have an account? ",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark ? Colors.white60 : AppColors.textSecondary,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: context.loc('sign_up'),
-                            style: TextStyle(
-                              color: isDark ? Colors.white : AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    // Footer link to Recover Account
+                    GestureDetector(
+                      onTap: () {
+                        context.push('/recover-account');
+                      },
+                      child: RichText(
+                        text: TextSpan(
+                          text: 'Already have an account? ',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isDark ? Colors.white60 : AppColors.textSecondary,
                           ),
-                        ],
+                          children: [
+                            TextSpan(
+                              text: 'Recover Account',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ).animate().fadeIn(delay: 500.ms),
+                    ).animate().fadeIn(delay: 450.ms),
 
-                const SizedBox(height: 32),
-              ],
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
+
+        // Loading overlay
+        if (_isLoading)
+          Container(
+            color: isDark ? Colors.black.withOpacity(0.9) : Colors.white.withOpacity(0.95),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Creating account...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,9 +16,23 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) context.go('/onboarding');
-    });
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+
+    // Wait for splash animation
+    await Future.delayed(const Duration(milliseconds: 2800));
+
+    if (mounted) {
+      if (hasSeenOnboarding) {
+        context.go('/home');
+      } else {
+        context.go('/onboarding');
+      }
+    }
   }
 
   @override
@@ -61,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                 // App Name
                 const Text(
-                  'Pay\'am',
+                  'Payam',
                   style: TextStyle(
                     fontSize: 42,
                     fontWeight: FontWeight.w800,

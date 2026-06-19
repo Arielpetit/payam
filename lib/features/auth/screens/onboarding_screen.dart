@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -23,14 +24,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _next(int pageCount) {
+  void _next(int pageCount) async {
     if (_currentPage < pageCount - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
     } else {
-      context.go('/login');
+      // Mark onboarding as seen
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_seen_onboarding', true);
+      if (mounted) context.go('/login');
     }
   }
 
@@ -69,7 +73,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: TextButton(
-                  onPressed: () => context.go('/login'),
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('has_seen_onboarding', true);
+                    if (context.mounted) context.go('/login');
+                  },
                   child: Text(
                     isDark ? 'SKIP' : 'Skip',
                     style: TextStyle(
@@ -114,18 +122,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     icon: _currentPage == pages.length - 1
                         ? Icons.arrow_forward_rounded
                         : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: Text(
-                      context.loc('already_have_account'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.white70 : AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                   ),
                 ],
               ),

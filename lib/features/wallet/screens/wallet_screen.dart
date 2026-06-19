@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/localization/app_localizations.dart';
@@ -9,7 +10,6 @@ import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/payam_button.dart';
 import '../../../shared/widgets/payam_text_field.dart';
 import '../../../shared/widgets/transaction_tile.dart';
-import '../../../shared/widgets/success/success_overlay.dart';
 import '../../../shared/models/transaction_model.dart';
 import '../../../shared/models/notification_model.dart';
 import '../../../shared/repositories/mock_repository.dart';
@@ -109,13 +109,19 @@ class WalletScreen extends ConsumerWidget {
 
                       Navigator.pop(context);
                       
-                      await SuccessOverlay.show(
-                        context,
-                        title: 'Top Up Successful',
-                        subtitle: 'Your wallet has been credited',
-                        amount: 'FCFA ${CurrencyFormatter.format(amt)}',
-                        icon: Icons.account_balance_rounded,
-                      );
+                      if (context.mounted) {
+                        context.go('/transaction-success', extra: {
+                          'title': 'Top Up Successful',
+                          'subtitle': 'Your wallet has been credited',
+                          'amount': 'FCFA ${CurrencyFormatter.format(amt)}',
+                          'icon': Icons.account_balance_rounded,
+                          'transactionType': TransactionType.deposit,
+                          'reference': 'PAY${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+                          'paymentMethod': 'Bank Transfer',
+                          'fee': '0 FCFA',
+                          'isKnownContact': true,
+                        });
+                      }
                     }
                   },
                 ),
@@ -231,13 +237,19 @@ class WalletScreen extends ConsumerWidget {
 
                       Navigator.pop(context);
                       
-                      await SuccessOverlay.show(
-                        context,
-                        title: 'Withdrawal Successful',
-                        subtitle: 'Funds sent to your bank account',
-                        amount: 'FCFA ${CurrencyFormatter.format(amt)}',
-                        icon: Icons.payments_rounded,
-                      );
+                      if (context.mounted) {
+                        context.go('/transaction-success', extra: {
+                          'title': 'Withdrawal Successful',
+                          'subtitle': 'Funds sent to your bank account',
+                          'amount': 'FCFA ${CurrencyFormatter.format(amt)}',
+                          'icon': Icons.payments_rounded,
+                          'transactionType': TransactionType.withdrawal,
+                          'reference': 'PAY${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+                          'paymentMethod': 'Bank Account',
+                          'fee': '0 FCFA',
+                          'isKnownContact': true,
+                        });
+                      }
                     }
                   },
                 ),
@@ -747,7 +759,18 @@ class _KYCVerificationCard extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () {},
+            onTap: () async {
+              final uri = Uri.parse('https://inquiry.withpersona.com/verify?inquiry-id=inq_A7YE3mwdHp4B6rxBiyvDzJNPyySucC');
+              try {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not open verification link: $e'), backgroundColor: AppColors.error),
+                  );
+                }
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
